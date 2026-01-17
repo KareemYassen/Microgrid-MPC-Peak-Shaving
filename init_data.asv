@@ -1,0 +1,140 @@
+%% init_data.m
+%  Step 1 of Implementation: Data Engineering
+%  Team: Daniel, Anwar, Kareem
+%  Purpose: Loads raw PV data and generates synthetic EV load profile.
+%  UPDATE: Independent AC/DC logic for realistic ~610kW Peaks.
+
+clear; clc; close all;
+fprintf('=== STARTING DATA INITIALIZATION ===\n');
+fprintf('Current MATLAB Folder: %s\n', pwd);
+
+%% 1. PV Generation Data (The Sun)
+filename = 'Timeseries_51.028_7.563_SA3_1kWp_crystSi_14_35deg_0deg_2023_2023.csv'; 
+
+if ~isfile(filename)
+    % Fallback check
+    if isfile('PV_Data_Raw.csv')
+        filename = 'PV_Data_Raw.csv';
+    else
+        error('File not found! \nMATLAB is looking for: %s \nIn: %s', filename, pwd);
+    end
+end
+
+fprintf('Found file: %s\n', filename);
+
+% Read the data
+opts = detectImportOptions(filename);
+opts.DataLines = [11 Inf]; 
+opts.VariableNamingRule = 'preserve';
+raw_table = readtable(filename, opts);
+
+% Extract Power Column
+if ismember('P', raw_table.Properties.VariableNames)
+    P_1kW_unit = raw_table.P; 
+else
+    raw_matrix = readmatrix(filename);
+    P_1kW_unit = raw_matrix(:, 2); 
+end
+
+% Data Cleaning
+P_1kW_unit = double(P_1kW_unit);
+P_1kW_unit(isnan(P_1kW_unit)) = 0;
+
+% Scale up to Mall Size (500 kWp)
+System_Size_kWp = 500; 
+P_PV_Watts = P_1kW_unit * System_Size_kWp;
+P_PV_kW = P_PV_Watts / 1000;
+
+% Interpolate to 15-min
+Time_Hours = (0:length(P_PV_kW)-1)';
+Time_15min = (0:0.25:(length(P_PV_kW)-1))';
+P_PV_15min = interp1(Time_Hours, P_PV_kW, Time_15min, 'linear');
+
+% Create Timeseries
+ts_PV = timeseries(P_PV_15min, Time_15min);
+fprintf('SUCCESS: PV Data Loaded. Peak Power: %.2f kW\n', max(P_PV_15min));
+
+%% 2. Simulation Parameters (The Constraints)
+Battery_Capacity_kWh = 250;
+Inverter_Power_kW = 250;
+Grid_Limit_kW = 400;
+SOC_Min = 0.10;
+SOC_Max = 0.90;
+Efficiency = 0.95;
+fprintf('SUCCESS: Parameters Initialized.\n');
+
+%% 3. EV Load Generation (Independent Events)
+fprintf('Generating Stochastic Load Profile (Dual-Mode)...\n');
+
+% Base Load (Building) - Fixed
+Load_Building = 200 * ones(size(Time_15min)); 
+
+% EV Load Logic
+Load_EV = zeros(size(Time_15min));
+rng(42); % Fixed Seed for consistency
+
+for i = 1:length(Time_15min)
+    hour_of_day = mod(Time_15min(i), 24);
+    
+    % Probability of Arrival
+    if hour_of_day >= 17 && hour_of_day <= 20
+        prob_arrival = 0.30; 
+    elseif hour_of_day >= 12 && hour_of_day <= 14
+        prob_arrival = 0.10;
+    else
+        prob_arrival = 0.02;
+    end
+    
+    % --- INDEPENDENT LOGIC ---
+    
+    % 1. Roll for Fast Chargers (20% chance if car arrives)
+    if rand() < prob_arrival && rand() < 0.2 
+        Load_Fast = 150 + (rand() * 150); 
+    else
+        Load_Fast = 0;
+    end
+    
+    % 2. Roll for AC Chargers (80% chance if car arrives)
+    if rand() < prob_arrival && rand() < 0.8 
+        Load_AC = 11 * randi([5, 10]); 
+    else
+        Load_AC = 0;
+    end
+    
+    % 3. Sum them up
+    Load_EV(i) = Load_Fast + Load_AC; 
+end
+
+% Total Load Calculation
+P_Load_15min = Load_Building + Load_EV;
+
+% Create Timeseries
+ts_Load = timeseries(P_Load_15min, Time_15min);
+
+fprintf('SUCCESS: Load Profile Generated.\n');
+fprintf('   > Base Load: 200 kW\n');
+fprintf('   > Max EV Spike: %.2f kW\n', max(Load_EV));
+fprintf('   > TOTAL MAX PEAK: %.2f kW (Target: ~610 kW)\n', max(P_Load_15min));
+
+%% 4. Visualization (DISABLED)
+% The following section is commented out to prevent figures from displaying.
+% To re-enable, simply remove the '%' from the lines below.
+
+%{
+figure(1);
+subplot(2,1,1);
+plot(Time_15min(1:400), P_PV_15min(1:400)); 
+title('PV Generation (First 4 Days)');
+ylabel('Power (kW)'); grid on;
+
+subplot(2,1,2);
+plot(Time_15min(1:400), P_Load_15min(1:400), 'r', 'LineWidth', 1.5); hold on;
+yline(Grid_Limit_kW, 'k--', 'Grid Limit (400kW)', 'LineWidth', 2);
+title('Total Load Profile (Red) vs Grid Limit (Black)');
+xlabel('Time (Hours)');
+ylabel('Power (kW)');
+legend('Total Load', 'Limit');
+grid on;
+%}
+
+fprintf('=== DATA INITIALIZATION COMPLETE ===\n');
