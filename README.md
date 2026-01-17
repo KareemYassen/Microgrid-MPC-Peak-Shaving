@@ -13,14 +13,14 @@ This repository contains the MATLAB implementation of a Quadratic Model Predicti
 
 ## Project Structure
 1. `init_data.m`: Sets system parameters, economic constants, and degradation coefficients.
-2. `MPC_Weekly_Snapshot.m`: Performs a high-resolution simulation of a single week (June Week 4) to visualize peak shaving dynamics.
-3. `ANNUAL_MASTER_RUN_FINAL_PRO.m`: The main execution script for the full-year simulation and cumulative financial reporting.
+2. `mpc_snapshot_weekly.m`: Performs a high-resolution simulation of a single week (June Week 4) to visualize peak shaving dynamics.
+3. `mpc_annual_optimization.m`: The main execution script for the full-year simulation and cumulative financial reporting.
 4. `PV_Data`: Dataset containing 15-minute interval solar generation and building load profiles.
 
 ## How to Run
 1. Ensure all files are in the same MATLAB directory.
 2. Run `init_data.m` to load the environment.
-3. Run `Battery_Health.m` to generate the annual performance report and health-fade plots.
+3. Run `mpc_annual_optimization.m` to generate the annual performance report and health-fade plots.
 
 ## Authors
 * Kareem
