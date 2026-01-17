@@ -16,31 +16,30 @@ The controller is formulated as a **Quadratic Programming (QP)** problem, design
 
 
 
-## 3. Project Architecture
+## 3. Project Architecture & File Names
 The repository is structured into a modular **Data Engineering** and **Optimization** pipeline:
 
-1.  **`microgrid_data_engineering.m`**: Loads raw PVGIS-SARAH3 meteorological data (Gummersbach, Germany) and synthesizes stochastic facility loads.
-2.  **`mpc_dispatch_snapshot.m`**: A high-resolution simulation of a single high-demand week (June Week 4) to visualize 168-hour horizon dynamics.
-3.  **`mpc_annual_optimization_suite.m`**: The master execution script utilizing a **"State Handoff"** mechanism to simulate 52 sequential weeks of health fade and financial performance.
-4.  **`PV_Data_Raw.csv`**: Time-series solar generation and baseline building demand profiles.
+1.  **`init_data.m`**: The initialization script that sets system parameters, economic constants, loads PVGIS-SARAH3 meteorological data, and synthesizes stochastic facility loads.
+2.  **`mpc_snapshot_weekly.m`**: A high-resolution simulation of a single high-demand week (June Week 4) to visualize 168-hour horizon dynamics and peak-shaving efficacy.
+3.  **`mpc_annual_optimization.m`**: The master execution script utilizing a **"State Handoff"** mechanism to simulate 52 sequential weeks of health fade and financial performance.
+4.  **`PV_Data_Raw.csv`**: Time-series solar generation and baseline building demand profiles used by the initialization script.
 
-## 4. Key Performance Results
-The system was benchmarked against a reactive (Naive) threshold controller over a 365-day operational window:
+## 4. How to Run the Code
+Follow these steps to reproduce the simulation results:
 
-| Metric | Proposed MPC | Improvement |
-| :--- | :--- | :--- |
-| **Annual Financial Savings** | **€16,898.35** | +8.1% vs Naive |
-| **Final State of Health (SOH)** | **97.68%** | +0.62% preservation |
-| **Peak Demand Penalty** | **€0.00** | 100% mitigation |
-| **Max Grid Peak** | **351.98 kW** | -42% reduction |
+1.  **Environment Setup:** Ensure you have MATLAB installed with the **Optimization Toolbox**. 
+2.  **File Placement:** Keep all `.m` files and the `.csv` data file in the same working directory.
+3.  **Initialization:** Run **`init_data.m`** first. This will process the raw data, generate the stochastic EV profiles, and load all parameters into the workspace.
+4.  **Annual Simulation:** To generate the full-year results, financial reports, and battery health-fade plots, run **`mpc_annual_optimization.m`**.
+5.  **Weekly Visualization:** To see a detailed "snapshot" of the controller's behavior during a specific peak week, run **`mpc_snapshot_weekly.m`**.
+
+## 5. Key Performance Results
+* **Annual Financial Savings:** **€16,898.35** reduction in total costs compared to reactive strategies.
+* **Final State of Health (SOH):** **97.68%** preservation after 365 days of operation.
+* **Peak Demand Penalty:** **€0.00** (Successful 100% mitigation of demand charges).
+* **Grid Peak Reduction:** Maximum annual grid peak limited to **351.98 kW**.
 
 
 
-## 5. Deployment Instructions
-1.  Clone the repository and ensure the MATLAB **Optimization Toolbox** is installed.
-2.  Execute `microgrid_data_engineering.m` to generate the environment variables and stochastic profiles.
-3.  Run `mpc_annual_optimization_suite.m` to generate the 52-week financial report and battery degradation plots.
-
-## 6. Authors & Acknowledgments
+## 6. Authors
 * **Kareem**, **Daniel**, and **Anwar**
-* This work utilizes solar data from the **EU Science Hub PVGIS-SARAH3** database.
