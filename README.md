@@ -20,7 +20,7 @@ This repository contains the MATLAB implementation of a Quadratic Model Predicti
 ## How to Run
 1. Ensure all files are in the same MATLAB directory.
 2. Run `init_data.m` to load the environment.
-3. Run `ANNUAL_MASTER_RUN_FINAL_PRO.m` to generate the annual performance report and health-fade plots.
+3. Run `Battery_Health.m` to generate the annual performance report and health-fade plots.
 
 ## Authors
 * Kareem
